@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>צור קשר — אתר הסת"ם המרכזי</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="categories.js"></script>
+<script src="auth.js"></script>
+</head>
+<body>
+<a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a href="index.html" class="logo">
+      ✡️ אתר הסת"ם המרכזי
+      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+    </a>
+    <nav class="main-nav" aria-label="ניווט ראשי">
+      <a href="index.html">דף הבית</a>
+      <a href="forum-page.html" class="btn-forum">💬 פורום</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="container">
+    <h1 class="page-title">צור קשר</h1>
+    <p class="page-subtitle">יש לכם שאלה, הצעה או דיווח? נשמח לשמוע</p>
+
+    <div class="form-card">
+      <div id="formAlert"></div>
+
+      <div class="form-group">
+        <label for="name">שם</label>
+        <input type="text" id="name" placeholder="השם שלך">
+      </div>
+
+      <div class="form-group">
+        <label for="email">אימייל *</label>
+        <input type="email" id="email" placeholder="example@mail.com">
+      </div>
+
+      <div class="form-group">
+        <label for="message">הודעה *</label>
+        <textarea id="message" placeholder="כתבו לנו כאן..."></textarea>
+      </div>
+
+      <button class="btn btn-submit btn-block" id="submitBtn" onclick="sendContact()">שלח</button>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>אתר הסת"ם המרכזי &copy; <span id="year"></span></p>
+  <p><a href="forum-page.html">פורום</a> | <a href="contact.html">צור קשר</a></p>
+  <div class="legal-links">
+    <button type="button" onclick="openLegalModal('privacy')">מדיניות פרטיות</button>
+    |
+    <button type="button" onclick="openLegalModal('terms')">תנאי שימוש</button>
+    |
+    <button type="button" onclick="openLegalModal('accessibility')">הצהרת נגישות</button>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="legalModal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+    <button class="modal-close" onclick="closeLegalModal()" aria-label="סגור">✕</button>
+    <h2 id="legalModalTitle"></h2>
+    <div id="legalModalBody"></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+function showAlert(msg, type) {
+  document.getElementById('formAlert').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+async function sendContact() {
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const message = document.getElementById('message').value.trim();
+
+  if (!email || !message) {
+    showAlert('נא למלא אימייל והודעה', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'שולח...';
+
+  try {
+    const { error } = await supabase.from('contacts').insert({ name, email, message });
+    if (error) throw error;
+    showAlert('ההודעה נשלחה בהצלחה, תודה!', 'success');
+    document.getElementById('name').value = '';
+    document.getElementById('email').value = '';
+    document.getElementById('message').value = '';
+  } catch (err) {
+    showAlert('שגיאה: ' + (err.message || JSON.stringify(err)), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'שלח';
+  }
+}
+
+function openLegalModal(key) {
+  const content = LEGAL_CONTENT[key];
+  if (!content) return;
+  document.getElementById('legalModalTitle').textContent = content.title;
+  document.getElementById('legalModalBody').innerHTML = content.body;
+  document.getElementById('legalModal').classList.add('open');
+}
+function closeLegalModal() {
+  document.getElementById('legalModal').classList.remove('open');
+}
+document.getElementById('legalModal').addEventListener('click', (e) => {
+  if (e.target.id === 'legalModal') closeLegalModal();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>שאלה חדשה — פורום — אתר הסת"ם המרכזי</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="categories.js"></script>
+<script src="auth.js"></script>
+</head>
+<body>
+<a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a href="index.html" class="logo">
+      ✡️ אתר הסת"ם המרכזי
+      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+    </a>
+    <nav class="main-nav" aria-label="ניווט ראשי">
+      <a href="forum-page.html" class="btn-forum">💬 פורום</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="container">
+    <h1 class="page-title">💬 שאלה חדשה בפורום</h1>
+    <p class="page-subtitle">שאלו את קהילת הסת"ם — תשובות מתפרסמות לכולם</p>
+
+    <div class="form-card">
+      <div id="formAlert"></div>
+
+      <div class="form-group">
+        <label for="title">כותרת השאלה *</label>
+        <input type="text" id="title" placeholder="לדוגמה: מה ההבדל בין כתב בית יוסף לכתב וועליש?">
+      </div>
+
+      <div class="form-group">
+        <label for="description">פירוט השאלה</label>
+        <textarea id="description" maxlength="1000" oninput="document.getElementById('descCount').textContent = this.value.length + ' / 1000'"></textarea>
+        <div class="char-counter" id="descCount">0 / 1000</div>
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-row">
+          <input type="checkbox" id="anonymous" onchange="document.getElementById('displayNameWrap').style.display = this.checked ? 'none' : 'block'">
+          <label for="anonymous" style="margin:0;">פרסם בעילום שם</label>
+        </div>
+      </div>
+
+      <div class="form-group" id="displayNameWrap">
+        <label for="displayName">שם להצגה</label>
+        <input type="text" id="displayName" placeholder="השם שיוצג ליד השאלה">
+      </div>
+
+      <button class="btn btn-submit btn-block" id="submitBtn" onclick="submitQuestion()">פרסם שאלה</button>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>אתר הסת"ם המרכזי &copy; <span id="year"></span></p>
+  <p><a href="forum-page.html">פורום</a> | <a href="contact.html">צור קשר</a></p>
+  <div class="legal-links">
+    <button type="button" onclick="openLegalModal('privacy')">מדיניות פרטיות</button>
+    |
+    <button type="button" onclick="openLegalModal('terms')">תנאי שימוש</button>
+    |
+    <button type="button" onclick="openLegalModal('accessibility')">הצהרת נגישות</button>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="legalModal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+    <button class="modal-close" onclick="closeLegalModal()" aria-label="סגור">✕</button>
+    <h2 id="legalModalTitle"></h2>
+    <div id="legalModalBody"></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+function showAlert(msg, type) {
+  document.getElementById('formAlert').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+async function submitQuestion() {
+  const title = document.getElementById('title').value.trim();
+  if (!title) {
+    showAlert('נא למלא כותרת לשאלה', 'error');
+    return;
+  }
+
+  const user = await requireAuth('form:form-forum.html');
+  if (!user) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'שומר...';
+
+  const isAnonymous = document.getElementById('anonymous').checked;
+  const displayName = isAnonymous ? '' : (document.getElementById('displayName').value.trim() || user.fullName || user.name || '');
+
+  try {
+    const { data: listing, error } = await supabase.from('listings').insert({
+      category: 'forum',
+      title,
+      description: document.getElementById('description').value.trim(),
+      user_id: user.id
+    }).select('id').single();
+    if (error) throw error;
+
+    await supabase.from('forum_details').insert({
+      listing_id: listing.id,
+      is_anonymous: isAnonymous,
+      display_name: displayName
+    });
+
+    window.location.href = 'forum-page.html?id=' + listing.id;
+  } catch (err) {
+    showAlert('שגיאה: ' + (err.message || JSON.stringify(err)), 'error');
+    btn.disabled = false;
+    btn.textContent = 'פרסם שאלה';
+  }
+}
+
+function openLegalModal(key) {
+  const content = LEGAL_CONTENT[key];
+  if (!content) return;
+  document.getElementById('legalModalTitle').textContent = content.title;
+  document.getElementById('legalModalBody').innerHTML = content.body;
+  document.getElementById('legalModal').classList.add('open');
+}
+function closeLegalModal() {
+  document.getElementById('legalModal').classList.remove('open');
+}
+document.getElementById('legalModal').addEventListener('click', (e) => {
+  if (e.target.id === 'legalModal') closeLegalModal();
+});
+</script>
+</body>
+</html>

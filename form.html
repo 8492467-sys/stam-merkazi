@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>פרסום מודעה — אתר הסת"ם המרכזי</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="categories.js"></script>
+<script src="upload-images.js"></script>
+<script src="auth.js"></script>
+</head>
+<body>
+<a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a href="index.html" class="logo">
+      ✡️ אתר הסת"ם המרכזי
+      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+    </a>
+    <nav class="main-nav" aria-label="ניווט ראשי">
+      <a href="my-ads.html">האזור האישי שלי</a>
+      <a href="forum-page.html" class="btn-forum">💬 פורום</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="container">
+    <h1 class="page-title" id="formTitle">פרסום מודעה</h1>
+    <p class="page-subtitle" id="formSubtitle"></p>
+
+    <div class="form-card">
+      <div id="formAlert"></div>
+
+      <div class="form-group">
+        <label for="title">כותרת המודעה *</label>
+        <input type="text" id="title" placeholder="לדוגמה: זוג תפילין רש״י מהודרות">
+      </div>
+
+      <div class="form-group">
+        <label for="description">תיאור</label>
+        <textarea id="description" maxlength="600" oninput="document.getElementById('descCount').textContent = this.value.length + ' / 600'"></textarea>
+        <div class="char-counter" id="descCount">0 / 600</div>
+      </div>
+
+      <div id="categoryFields"></div>
+
+      <div class="form-group">
+        <label for="phone">טלפון *</label>
+        <input type="tel" id="phone" placeholder="050-0000000">
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-row">
+          <input type="checkbox" id="whatsapp">
+          <label for="whatsapp" style="margin:0;">הוסף כפתור וואטסאפ</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-row">
+          <input type="checkbox" id="hasWebsite" onchange="document.getElementById('websiteWrap').style.display = this.checked ? 'block' : 'none'">
+          <label for="hasWebsite" style="margin:0;">יש לי אתר / קישור</label>
+        </div>
+        <div id="websiteWrap" style="display:none;margin-top:8px;">
+          <input type="url" id="website" placeholder="https://www.example.com">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>תמונות (עד 3)</label>
+        <div class="hint" style="margin-bottom:8px;">📸 העלאת תמונות משדרגת את המודעה ומושכת קהל רב יותר</div>
+        <div class="image-upload-grid" id="uploadGrid">
+          <div class="image-upload-slot" onclick="document.getElementById('imgInput').click()">
+            <span class="placeholder">📷</span>
+          </div>
+        </div>
+        <input type="file" id="imgInput" accept="image/*" multiple style="display:none">
+      </div>
+
+      <button class="btn btn-submit btn-block" id="submitBtn" onclick="submitForm()">פרסם מודעה</button>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>אתר הסת"ם המרכזי &copy; <span id="year"></span></p>
+  <p><a href="forum-page.html">פורום</a> | <a href="contact.html">צור קשר</a></p>
+  <div class="legal-links">
+    <button type="button" onclick="openLegalModal('privacy')">מדיניות פרטיות</button>
+    |
+    <button type="button" onclick="openLegalModal('terms')">תנאי שימוש</button>
+    |
+    <button type="button" onclick="openLegalModal('accessibility')">הצהרת נגישות</button>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="legalModal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+    <button class="modal-close" onclick="closeLegalModal()" aria-label="סגור">✕</button>
+    <h2 id="legalModalTitle"></h2>
+    <div id="legalModalBody"></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+const params = new URLSearchParams(location.search);
+const cat = params.get('cat');
+const editId = params.get('edit');
+
+let imgCount = 0;
+
+if (!cat || !ALL_CATS.includes(cat)) {
+  document.querySelector('.form-card').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>קטגוריה לא נמצאה. <a href="index.html">חזרה לדף הבית</a></p></div>';
+} else {
+  document.getElementById('formTitle').textContent = (editId ? 'עריכת מודעה — ' : 'פרסום מודעה — ') + CAT_HE[cat];
+  document.getElementById('formSubtitle').textContent = CAT_DESC[cat];
+  document.title = (editId ? 'עריכת מודעה — ' : 'פרסום מודעה — ') + CAT_HE[cat] + ' — אתר הסת"ם המרכזי';
+  buildCategoryFields();
+  if (editId) loadForEdit();
+}
+
+function buildCategoryFields() {
+  const wrap = document.getElementById('categoryFields');
+  const fields = CATEGORY_FIELDS[cat] || [];
+  fields.forEach(field => {
+    const group = document.createElement('div');
+    group.className = 'form-group';
+    const label = document.createElement('label');
+    label.textContent = field.label;
+    label.setAttribute('for', 'field-' + field.key);
+    group.appendChild(label);
+
+    if (field.type === 'select') {
+      const select = document.createElement('select');
+      select.id = 'field-' + field.key;
+      select.innerHTML = '<option value="">בחר...</option>' + field.options.map(o => `<option value="${o}">${o}</option>`).join('');
+      group.appendChild(select);
+    } else {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.id = 'field-' + field.key;
+      if (field.placeholder) input.placeholder = field.placeholder;
+      group.appendChild(input);
+    }
+    wrap.appendChild(group);
+  });
+}
+
+// ------------------------------------------------------------
+// Image handling
+// ------------------------------------------------------------
+document.getElementById('imgInput').addEventListener('change', function() {
+  if (!validateImageFiles(this.files)) { this.value = ''; return; }
+  Array.from(this.files).slice(0, 3 - imgCount).forEach(file => {
+    if (imgCount >= 3) return;
+    imgCount++;
+    selectedFiles.push(file);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const slot = document.createElement('div');
+      slot.className = 'image-upload-slot';
+      slot.innerHTML = `<img src="${e.target.result}" alt="">`;
+      const grid = document.getElementById('uploadGrid');
+      const addSlot = grid.querySelector('.image-upload-slot:last-child');
+      grid.insertBefore(slot, addSlot);
+      if (imgCount >= 3) addSlot.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+  this.value = '';
+});
+
+// ------------------------------------------------------------
+// Edit mode — load existing listing
+// ------------------------------------------------------------
+async function loadForEdit() {
+  const { data, error } = await supabase.from('listings').select('*').eq('id', editId).single();
+  if (error || !data) return;
+
+  document.getElementById('title').value = data.title || '';
+  document.getElementById('description').value = data.description || '';
+  document.getElementById('descCount').textContent = (data.description || '').length + ' / 600';
+  document.getElementById('phone').value = data.phone || '';
+  document.getElementById('whatsapp').checked = !!data.whatsapp_enabled;
+  if (data.website) {
+    document.getElementById('hasWebsite').checked = true;
+    document.getElementById('websiteWrap').style.display = 'block';
+    document.getElementById('website').value = data.website;
+  }
+
+  const d = data.details || {};
+  (CATEGORY_FIELDS[cat] || []).forEach(field => {
+    const el = document.getElementById('field-' + field.key);
+    if (el && d[field.key] != null) el.value = d[field.key];
+  });
+
+  document.getElementById('submitBtn').textContent = 'שמור שינויים';
+}
+
+// ------------------------------------------------------------
+// Submit
+// ------------------------------------------------------------
+function showAlert(msg, type) {
+  document.getElementById('formAlert').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+async function submitForm() {
+  const title = document.getElementById('title').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+
+  if (!title || !phone) {
+    showAlert('נא למלא כותרת וטלפון', 'error');
+    return;
+  }
+
+  const authUser = await requireAuth('form:form.html?cat=' + cat + (editId ? '&edit=' + editId : ''));
+  if (!authUser) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'שומר...';
+
+  try {
+    const details = {};
+    (CATEGORY_FIELDS[cat] || []).forEach(field => {
+      const el = document.getElementById('field-' + field.key);
+      if (el && el.value.trim()) details[field.key] = el.value.trim();
+    });
+
+    const payload = {
+      category: cat,
+      title,
+      description: document.getElementById('description').value.trim(),
+      phone,
+      whatsapp_enabled: document.getElementById('whatsapp').checked,
+      details,
+      user_id: authUser.id
+    };
+
+    let listingId = editId;
+    if (editId) {
+      const { error } = await supabase.from('listings').update(payload).eq('id', editId);
+      if (error) throw error;
+    } else {
+      const { data: listing, error } = await supabase.from('listings').insert(payload).select('id').single();
+      if (error) throw error;
+      listingId = listing.id;
+    }
+
+    await saveListingWebsite(listingId);
+    await uploadListingImages(listingId);
+
+    window.location.href = 'my-ads.html';
+  } catch (err) {
+    showAlert('שגיאה: ' + (err.message || JSON.stringify(err)), 'error');
+    btn.disabled = false;
+    btn.textContent = editId ? 'שמור שינויים' : 'פרסם מודעה';
+  }
+}
+
+function openLegalModal(key) {
+  const content = LEGAL_CONTENT[key];
+  if (!content) return;
+  document.getElementById('legalModalTitle').textContent = content.title;
+  document.getElementById('legalModalBody').innerHTML = content.body;
+  document.getElementById('legalModal').classList.add('open');
+}
+function closeLegalModal() {
+  document.getElementById('legalModal').classList.remove('open');
+}
+document.getElementById('legalModal').addEventListener('click', (e) => {
+  if (e.target.id === 'legalModal') closeLegalModal();
+});
+</script>
+</body>
+</html>

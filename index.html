@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>אתר הסת"ם המרכזי</title>
+<meta name="description" content="לוח מודעות מרכזי לעולם הסת״ם – תפילין, מזוזות, ספרי תורה, מגילות, הגהות, יודאיקה, קורסים ועוד">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="categories.js"></script>
+<script src="auth.js"></script>
+</head>
+<body>
+<a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a href="index.html" class="logo">
+      ✡️ אתר הסת"ם המרכזי
+      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+    </a>
+    <nav class="main-nav" aria-label="ניווט ראשי">
+      <a href="forum-page.html" class="btn-forum">💬 פורום</a>
+      <a href="contact.html">צור קשר</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <h1>אתר הסת"ם המרכזי</h1>
+    <p>לוח מודעות אחד לכל עולם הסת"ם — תפילין, מזוזות, ספרי תורה, מגילות, הגהות, יודאיקה, קורסים ועוד. פרסום מודעה ופורום דורשים התחברות עם Google, הצפייה פתוחה לכולם.</p>
+  </section>
+
+  <div class="container">
+    <h2 class="page-title">קטגוריות</h2>
+    <p class="page-subtitle">בחרו קטגוריה לצפייה במודעות ולסינון לפי הפרטים שמעניינים אתכם</p>
+
+    <div class="cat-grid" id="catGrid"></div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>אתר הסת"ם המרכזי &copy; <span id="year"></span></p>
+  <p><a href="forum-page.html">פורום</a> | <a href="contact.html">צור קשר</a></p>
+  <div class="legal-links">
+    <button type="button" onclick="openLegalModal('privacy')">מדיניות פרטיות</button>
+    |
+    <button type="button" onclick="openLegalModal('terms')">תנאי שימוש</button>
+    |
+    <button type="button" onclick="openLegalModal('accessibility')">הצהרת נגישות</button>
+  </div>
+</footer>
+
+<!-- מודאל משפטי -->
+<div class="modal-overlay" id="legalModal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+    <button class="modal-close" onclick="closeLegalModal()" aria-label="סגור">✕</button>
+    <h2 id="legalModalTitle"></h2>
+    <div id="legalModalBody"></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+// בניית כרטיסי קטגוריה
+const catGrid = document.getElementById('catGrid');
+ALL_CATS.forEach(cat => {
+  const colors = CAT_COLOR[cat];
+  const card = document.createElement('a');
+  card.className = 'cat-card';
+  card.href = 'categories-all.html?cat=' + cat;
+  card.innerHTML = `
+    <div class="cat-icon" style="background:${colors.bg};color:${colors.color};box-shadow:0 0 0 6px ${colors.shadow};">${CAT_ICON[cat]}</div>
+    <h3>${CAT_HE[cat]}</h3>
+    <p>${CAT_DESC[cat]}</p>
+    <div class="cat-count" id="count-${cat}">טוען...</div>
+  `;
+  catGrid.appendChild(card);
+});
+
+// ספירת מודעות פעילות לכל קטגוריה
+async function loadCounts() {
+  for (const cat of ALL_CATS) {
+    const { count, error } = await supabase
+      .from('listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('category', cat)
+      .eq('status', 'active');
+    const el = document.getElementById('count-' + cat);
+    if (el) el.textContent = error ? '' : `${count || 0} מודעות`;
+  }
+}
+loadCounts();
+
+// מודאל משפטי
+function openLegalModal(key) {
+  const content = LEGAL_CONTENT[key];
+  if (!content) return;
+  document.getElementById('legalModalTitle').textContent = content.title;
+  document.getElementById('legalModalBody').innerHTML = content.body;
+  document.getElementById('legalModal').classList.add('open');
+}
+function closeLegalModal() {
+  document.getElementById('legalModal').classList.remove('open');
+}
+document.getElementById('legalModal').addEventListener('click', (e) => {
+  if (e.target.id === 'legalModal') closeLegalModal();
+});
+</script>
+</body>
+</html>

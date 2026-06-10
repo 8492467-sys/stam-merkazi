@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>קטגוריה — אתר הסת"ם המרכזי</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="categories.js"></script>
+<script src="auth.js"></script>
+</head>
+<body>
+<a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a href="index.html" class="logo">
+      ✡️ אתר הסת"ם המרכזי
+      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+    </a>
+    <nav class="main-nav" aria-label="ניווט ראשי">
+      <a href="index.html">דף הבית</a>
+      <a href="forum-page.html" class="btn-forum">💬 פורום</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="container">
+    <h1 class="page-title" id="catTitle">קטגוריה</h1>
+    <p class="page-subtitle" id="catDesc"></p>
+
+    <div class="filter-bar" id="filterBar"></div>
+
+    <div id="listingsArea">
+      <div class="loading">טוען מודעות...</div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>אתר הסת"ם המרכזי &copy; <span id="year"></span></p>
+  <p><a href="forum-page.html">פורום</a> | <a href="contact.html">צור קשר</a></p>
+  <div class="legal-links">
+    <button type="button" onclick="openLegalModal('privacy')">מדיניות פרטיות</button>
+    |
+    <button type="button" onclick="openLegalModal('terms')">תנאי שימוש</button>
+    |
+    <button type="button" onclick="openLegalModal('accessibility')">הצהרת נגישות</button>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="legalModal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+    <button class="modal-close" onclick="closeLegalModal()" aria-label="סגור">✕</button>
+    <h2 id="legalModalTitle"></h2>
+    <div id="legalModalBody"></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+const params = new URLSearchParams(location.search);
+const cat = params.get('cat');
+
+if (!cat || !ALL_CATS.includes(cat)) {
+  document.getElementById('catTitle').textContent = 'קטגוריה לא נמצאה';
+  document.getElementById('listingsArea').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>הקטגוריה המבוקשת לא נמצאה. <a href="index.html">חזרה לדף הבית</a></p></div>';
+} else {
+  document.getElementById('catTitle').textContent = CAT_ICON[cat] + ' ' + CAT_HE[cat];
+  document.getElementById('catDesc').textContent = CAT_DESC[cat];
+  document.title = CAT_HE[cat] + ' — אתר הסת"ם המרכזי';
+  buildFilterBar();
+  loadListings();
+}
+
+const activeFilters = {};
+
+function buildFilterBar() {
+  const bar = document.getElementById('filterBar');
+  const fields = (CATEGORY_FIELDS[cat] || []).filter(f => f.type === 'select');
+  if (!fields.length) { bar.style.display = 'none'; return; }
+
+  fields.forEach(field => {
+    const wrap = document.createElement('div');
+    wrap.className = 'filter-field';
+    const label = document.createElement('label');
+    label.textContent = field.label;
+    label.setAttribute('for', 'filter-' + field.key);
+    const select = document.createElement('select');
+    select.id = 'filter-' + field.key;
+    select.innerHTML = '<option value="">הכל</option>' + field.options.map(o => `<option value="${o}">${o}</option>`).join('');
+    select.addEventListener('change', () => {
+      if (select.value) activeFilters[field.key] = select.value;
+      else delete activeFilters[field.key];
+      loadListings();
+    });
+    wrap.appendChild(label);
+    wrap.appendChild(select);
+    bar.appendChild(wrap);
+  });
+
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.className = 'btn btn-outline btn-reset';
+  resetBtn.textContent = 'איפוס סינון';
+  resetBtn.addEventListener('click', () => {
+    Object.keys(activeFilters).forEach(k => delete activeFilters[k]);
+    bar.querySelectorAll('select').forEach(s => s.value = '');
+    loadListings();
+  });
+  bar.appendChild(resetBtn);
+}
+
+async function loadListings() {
+  const area = document.getElementById('listingsArea');
+  area.innerHTML = '<div class="loading">טוען מודעות...</div>';
+
+  let query = supabase
+    .from('listings')
+    .select('id, title, description, details, created_at, listing_images(storage_path, display_order)')
+    .eq('category', cat)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+
+  Object.entries(activeFilters).forEach(([key, value]) => {
+    query = query.filter('details->>' + key, 'eq', value);
+  });
+
+  const { data, error } = await query;
+
+  if (error) {
+    area.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>שגיאה בטעינת המודעות.</p></div>';
+    console.error(error);
+    return;
+  }
+
+  if (!data || !data.length) {
+    area.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>אין עדיין מודעות בקטגוריה זו' + (Object.keys(activeFilters).length ? ' לפי הסינון שנבחר' : '') + '.</p></div>';
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'listing-grid';
+
+  data.forEach(item => {
+    const images = (item.listing_images || []).slice().sort((a,b) => a.display_order - b.display_order);
+    const firstImg = images[0];
+    const imgUrl = firstImg ? supabase.storage.from('listing-images').getPublicUrl(firstImg.storage_path).data.publicUrl : null;
+
+    const card = document.createElement('a');
+    card.className = 'listing-card';
+    card.href = 'listing.html?id=' + item.id;
+
+    const fields = CATEGORY_FIELDS[cat] || [];
+    const tags = fields
+      .filter(f => f.key !== 'price' && item.details && item.details[f.key])
+      .slice(0, 3)
+      .map(f => `<span class="tag">${item.details[f.key]}</span>`)
+      .join('');
+
+    const price = item.details && item.details.price ? `<div class="listing-price">${item.details.price}</div>` : '';
+
+    card.innerHTML = `
+      ${imgUrl ? `<img class="listing-img" src="${imgUrl}" alt="${item.title}">` : `<div class="listing-img-placeholder">${CAT_ICON[cat]}</div>`}
+      <div class="listing-body">
+        <h3>${item.title}</h3>
+        <div class="listing-meta">${tags}</div>
+        ${price}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  area.innerHTML = '';
+  area.appendChild(grid);
+}
+
+function openLegalModal(key) {
+  const content = LEGAL_CONTENT[key];
+  if (!content) return;
+  document.getElementById('legalModalTitle').textContent = content.title;
+  document.getElementById('legalModalBody').innerHTML = content.body;
+  document.getElementById('legalModal').classList.add('open');
+}
+function closeLegalModal() {
+  document.getElementById('legalModal').classList.remove('open');
+}
+document.getElementById('legalModal').addEventListener('click', (e) => {
+  if (e.target.id === 'legalModal') closeLegalModal();
+});
+</script>
+</body>
+</html>

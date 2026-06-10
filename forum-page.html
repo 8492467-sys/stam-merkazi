@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>פורום — אתר הסת"ם המרכזי</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="categories.js"></script>
+<script src="auth.js"></script>
+</head>
+<body>
+<a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a href="index.html" class="logo">
+      ✡️ אתר הסת"ם המרכזי
+      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+    </a>
+    <nav class="main-nav" aria-label="ניווט ראשי">
+      <a href="index.html">דף הבית</a>
+      <a href="forum-page.html" class="btn-forum">💬 פורום</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="container" id="content">
+    <div class="loading">טוען...</div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>אתר הסת"ם המרכזי &copy; <span id="year"></span></p>
+  <p><a href="forum-page.html">פורום</a> | <a href="contact.html">צור קשר</a></p>
+  <div class="legal-links">
+    <button type="button" onclick="openLegalModal('privacy')">מדיניות פרטיות</button>
+    |
+    <button type="button" onclick="openLegalModal('terms')">תנאי שימוש</button>
+    |
+    <button type="button" onclick="openLegalModal('accessibility')">הצהרת נגישות</button>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="legalModal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+    <button class="modal-close" onclick="closeLegalModal()" aria-label="סגור">✕</button>
+    <h2 id="legalModalTitle"></h2>
+    <div id="legalModalBody"></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+const postId = new URLSearchParams(location.search).get('id');
+
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fmtDate(s) {
+  return new Date(s).toLocaleDateString('he-IL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+if (postId) loadPost(postId);
+else loadList();
+
+// ------------------------------------------------------------
+// רשימת שאלות
+// ------------------------------------------------------------
+async function loadList() {
+  const content = document.getElementById('content');
+
+  const { data, error } = await supabase
+    .from('listings')
+    .select('id, title, description, created_at, forum_details(is_anonymous, display_name)')
+    .eq('category', 'forum')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+
+  let html = `
+    <h1 class="page-title">💬 פורום</h1>
+    <p class="page-subtitle">שאלות ותשובות בעולם הסת"ם — צפייה לכולם, פרסום שאלה ותגובה דורשים התחברות עם Google</p>
+    <button class="btn btn-gold" onclick="newQuestion()" style="margin-bottom:20px;">+ שאלה חדשה</button>
+  `;
+
+  if (error || !data || !data.length) {
+    html += '<div class="empty-state"><div class="icon">💬</div><p>אין עדיין שאלות בפורום. היו הראשונים לשאול!</p></div>';
+    content.innerHTML = html;
+    return;
+  }
+
+  data.forEach(post => {
+    const fd = post.forum_details;
+    const author = (fd && !fd.is_anonymous && fd.display_name) ? fd.display_name : 'אנונימי';
+    html += `
+      <a href="forum-page.html?id=${post.id}" class="forum-post" style="display:block;">
+        <h3>${escH(post.title)}</h3>
+        <div class="meta">${author} · ${fmtDate(post.created_at)}</div>
+        ${post.description ? `<p style="margin:0;color:var(--text);">${escH(post.description).slice(0,200)}${post.description.length > 200 ? '…' : ''}</p>` : ''}
+      </a>
+    `;
+  });
+
+  content.innerHTML = html;
+}
+
+async function newQuestion() {
+  const user = await requireAuth('form:form-forum.html');
+  if (!user) return;
+  window.location.href = 'form-forum.html';
+}
+
+// ------------------------------------------------------------
+// פוסט בודד + תגובות
+// ------------------------------------------------------------
+async function loadPost(id) {
+  const content = document.getElementById('content');
+
+  const { data, error } = await supabase
+    .from('listings')
+    .select('id, title, description, created_at, forum_details(is_anonymous, display_name)')
+    .eq('id', id)
+    .eq('category', 'forum')
+    .single();
+
+  if (error || !data) {
+    content.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>השאלה לא נמצאה. <a href="forum-page.html">חזרה לפורום</a></p></div>';
+    return;
+  }
+
+  document.title = data.title + ' — פורום — אתר הסת"ם המרכזי';
+  const fd = data.forum_details;
+  const author = (fd && !fd.is_anonymous && fd.display_name) ? fd.display_name : 'אנונימי';
+
+  content.innerHTML = `
+    <p class="page-subtitle"><a href="forum-page.html">💬 פורום</a></p>
+    <div class="forum-post">
+      <h3 style="font-size:1.3rem;">${escH(data.title)}</h3>
+      <div class="meta">${author} · ${fmtDate(data.created_at)}</div>
+      ${data.description ? `<div class="description-box">${escH(data.description)}</div>` : ''}
+    </div>
+
+    <h2 class="page-title" style="font-size:1.3rem;margin-top:24px;">תגובות</h2>
+    <div id="repliesArea"><div class="loading">טוען תגובות...</div></div>
+
+    <div class="form-card" style="margin-top:16px;max-width:none;">
+      <div class="form-group">
+        <label for="replyBody">הוסף תגובה</label>
+        <textarea id="replyBody" placeholder="כתוב תגובה..."></textarea>
+      </div>
+      <div id="replyAlert"></div>
+      <button class="btn btn-submit" onclick="submitReply(null)" id="replyBtn">שלח תגובה</button>
+    </div>
+  `;
+
+  loadReplies(id);
+}
+
+async function loadReplies(listingId) {
+  const area = document.getElementById('repliesArea');
+  const { data, error } = await supabase
+    .from('forum_replies')
+    .select('*')
+    .eq('listing_id', listingId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    area.innerHTML = '<div class="empty-state"><p>שגיאה בטעינת התגובות.</p></div>';
+    return;
+  }
+
+  if (!data || !data.length) {
+    area.innerHTML = '<div class="empty-state"><p>אין עדיין תגובות. היו הראשונים להגיב!</p></div>';
+    return;
+  }
+
+  const map = {};
+  data.forEach(r => { map[r.id] = { ...r, children: [] }; });
+  const roots = [];
+  data.forEach(r => {
+    if (r.parent_id && map[r.parent_id]) map[r.parent_id].children.push(map[r.id]);
+    else roots.push(map[r.id]);
+  });
+
+  area.innerHTML = renderReplies(roots, 0);
+}
+
+function renderReplies(replies, depth) {
+  if (!replies.length) return '';
+  const indent = depth > 0 ? `margin-right:${Math.min(depth * 24, 72)}px;` : '';
+  return replies.map(r => {
+    const author = (!r.is_anonymous && r.display_name) ? r.display_name : 'אנונימי';
+    return `
+      <div class="forum-reply" style="${indent}">
+        <div class="meta">${escH(author)} · ${fmtDate(r.created_at)}</div>
+        <div>${escH(r.body)}</div>
+        <button class="btn btn-outline btn-sm" style="margin-top:6px;" onclick="toggleReplyForm('${r.id}')">↩ הגב</button>
+        <div id="replyForm-${r.id}" style="display:none;margin-top:8px;">
+          <textarea id="replyText-${r.id}" placeholder="כתוב תגובה..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;min-height:70px;"></textarea>
+          <button class="btn btn-submit btn-sm" style="margin-top:6px;" onclick="submitReply('${r.id}')">שלח</button>
+        </div>
+        ${r.children.length ? renderReplies(r.children, depth + 1) : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleReplyForm(id) {
+  const el = document.getElementById('replyForm-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function submitReply(parentId) {
+  const isRoot = !parentId;
+  const textEl = isRoot ? document.getElementById('replyBody') : document.getElementById('replyText-' + parentId);
+  const body = (textEl?.value || '').trim();
+  if (!body) return;
+
+  const user = await requireAuth('form:forum-page.html?id=' + postId);
+  if (!user) return;
+
+  const btn = isRoot ? document.getElementById('replyBtn') : null;
+  if (btn) { btn.disabled = true; btn.textContent = 'שולח...'; }
+
+  try {
+    const { error } = await supabase.from('forum_replies').insert({
+      listing_id: postId,
+      parent_id: parentId || null,
+      user_id: user.id,
+      body,
+      is_anonymous: false,
+      display_name: user.fullName || user.name || ''
+    });
+    if (error) throw error;
+    textEl.value = '';
+    loadReplies(postId);
+  } catch (err) {
+    const alertEl = document.getElementById('replyAlert');
+    if (alertEl) alertEl.innerHTML = `<div class="alert alert-error">שגיאה: ${err.message || err}</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'שלח תגובה'; }
+  }
+}
+
+function openLegalModal(key) {
+  const content = LEGAL_CONTENT[key];
+  if (!content) return;
+  document.getElementById('legalModalTitle').textContent = content.title;
+  document.getElementById('legalModalBody').innerHTML = content.body;
+  document.getElementById('legalModal').classList.add('open');
+}
+function closeLegalModal() {
+  document.getElementById('legalModal').classList.remove('open');
+}
+document.getElementById('legalModal').addEventListener('click', (e) => {
+  if (e.target.id === 'legalModal') closeLegalModal();
+});
+</script>
+</body>
+</html>

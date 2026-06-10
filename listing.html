@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מודעה — אתר הסת"ם המרכזי</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="categories.js"></script>
+<script src="auth.js"></script>
+</head>
+<body>
+<a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a href="index.html" class="logo">
+      ✡️ אתר הסת"ם המרכזי
+      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+    </a>
+    <nav class="main-nav" aria-label="ניווט ראשי">
+      <a href="index.html">דף הבית</a>
+      <a href="forum-page.html" class="btn-forum">💬 פורום</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="container" id="content">
+    <div class="loading">טוען מודעה...</div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>אתר הסת"ם המרכזי &copy; <span id="year"></span></p>
+  <p><a href="forum-page.html">פורום</a> | <a href="contact.html">צור קשר</a></p>
+  <div class="legal-links">
+    <button type="button" onclick="openLegalModal('privacy')">מדיניות פרטיות</button>
+    |
+    <button type="button" onclick="openLegalModal('terms')">תנאי שימוש</button>
+    |
+    <button type="button" onclick="openLegalModal('accessibility')">הצהרת נגישות</button>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="legalModal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+    <button class="modal-close" onclick="closeLegalModal()" aria-label="סגור">✕</button>
+    <h2 id="legalModalTitle"></h2>
+    <div id="legalModalBody"></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+function formatPhone(p) {
+  if (!p) return '';
+  const clean = p.replace(/[\s\-]/g, '');
+  if (clean.startsWith('+972')) return '0' + clean.slice(4);
+  if (clean.startsWith('972')) return '0' + clean.slice(3);
+  return p;
+}
+
+function toWaNumber(p) {
+  const clean = (p || '').replace(/[\s\-+]/g, '');
+  if (clean.startsWith('972')) return clean;
+  if (clean.startsWith('0')) return '972' + clean.slice(1);
+  return '972' + clean;
+}
+
+let adImages = [];
+
+function setMainImg(idx) {
+  const main = document.getElementById('mainImg');
+  if (!main || !adImages[idx]) return;
+  main.src = supabase.storage.from('listing-images').getPublicUrl(adImages[idx].storage_path).data.publicUrl;
+  document.querySelectorAll('.gallery-thumbs img').forEach((img, i) => {
+    img.classList.toggle('active', i === idx);
+  });
+}
+
+async function loadListing() {
+  const id = new URLSearchParams(location.search).get('id');
+  const content = document.getElementById('content');
+  if (!id) {
+    content.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>מודעה לא נמצאה. <a href="index.html">חזרה לדף הבית</a></p></div>';
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*, listing_images(storage_path, display_order)')
+    .eq('id', id)
+    .single();
+
+  if (error || !data) {
+    content.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>מודעה לא נמצאה. <a href="index.html">חזרה לדף הבית</a></p></div>';
+    return;
+  }
+
+  supabase.from('listings').update({ view_count: (data.view_count || 0) + 1 }).eq('id', id).then(() => {});
+
+  document.title = data.title + ' — אתר הסת"ם המרכזי';
+
+  const cat = data.category;
+  adImages = (data.listing_images || []).slice().sort((a,b) => a.display_order - b.display_order);
+  const d = data.details || {};
+
+  // gallery
+  let galleryHtml;
+  if (adImages.length) {
+    galleryHtml = `
+      <div class="gallery-main"><img id="mainImg" alt="${data.title}"></div>
+      ${adImages.length > 1 ? `<div class="gallery-thumbs">${adImages.map((img,i) => `<img src="${supabase.storage.from('listing-images').getPublicUrl(img.storage_path).data.publicUrl}" onclick="setMainImg(${i})" class="${i===0?'active':''}" alt="תמונה ${i+1}">`).join('')}</div>` : ''}
+    `;
+  } else {
+    galleryHtml = `<div class="gallery-main"><span class="placeholder-icon">${CAT_ICON[cat] || '📋'}</span></div>`;
+  }
+
+  // details list (from CATEGORY_FIELDS)
+  const fields = CATEGORY_FIELDS[cat] || [];
+  const detailItems = fields
+    .filter(f => f.key !== 'price' && d[f.key])
+    .map(f => `<li><span>${f.label}</span><span>${d[f.key]}</span></li>`)
+    .join('');
+
+  const priceHtml = d.price ? `<div class="price">${d.price}</div>` : '';
+
+  // contact actions
+  let contactHtml = '';
+  if (data.phone) {
+    contactHtml += `<a href="tel:${data.phone}" class="btn btn-dark btn-block">📞 ${formatPhone(data.phone)}</a>`;
+  }
+  if (data.whatsapp_enabled && data.phone) {
+    contactHtml += `<a href="https://wa.me/${toWaNumber(data.phone)}" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp btn-block">💬 וואטסאפ</a>`;
+  }
+  if (data.website) {
+    const url = data.website.startsWith('http') ? data.website : 'https://' + data.website;
+    contactHtml += `<a href="${url}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-block">🌐 לאתר</a>`;
+  }
+
+  content.innerHTML = `
+    <p class="page-subtitle"><a href="categories-all.html?cat=${cat}">${CAT_ICON[cat]} ${CAT_HE[cat]}</a></p>
+    <div class="listing-detail">
+      <div>
+        ${galleryHtml}
+      </div>
+      <div class="detail-panel">
+        <h1>${data.title}</h1>
+        ${priceHtml}
+        ${detailItems ? `<ul class="detail-list">${detailItems}</ul>` : ''}
+        ${data.description ? `<div class="description-box">${data.description.replace(/</g,'&lt;')}</div>` : ''}
+        <div class="contact-actions">${contactHtml}</div>
+      </div>
+    </div>
+  `;
+
+  if (adImages.length) setMainImg(0);
+}
+
+loadListing();
+
+function openLegalModal(key) {
+  const content = LEGAL_CONTENT[key];
+  if (!content) return;
+  document.getElementById('legalModalTitle').textContent = content.title;
+  document.getElementById('legalModalBody').innerHTML = content.body;
+  document.getElementById('legalModal').classList.add('open');
+}
+function closeLegalModal() {
+  document.getElementById('legalModal').classList.remove('open');
+}
+document.getElementById('legalModal').addEventListener('click', (e) => {
+  if (e.target.id === 'legalModal') closeLegalModal();
+});
+</script>
+</body>
+</html>
