@@ -35,7 +35,10 @@
     <h1 class="page-title">האזור האישי שלי</h1>
     <p class="page-subtitle">המודעות שפרסמת באתר</p>
 
-    <button class="btn btn-gold" onclick="openPublishModal()" style="margin-bottom:20px;">+ פרסם מודעה חדשה</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+      <button class="btn btn-gold" onclick="openPublishModal()">+ פרסם מודעה חדשה</button>
+      <button class="btn btn-outline" onclick="doSignOut()">התנתק</button>
+    </div>
 
     <div id="adsList">
       <div class="loading">טוען...</div>
@@ -112,8 +115,8 @@ async function loadMyAds() {
   }
 
   area.innerHTML = '';
-  const list = document.createElement('div');
-  list.className = 'my-ads-list';
+  const grid = document.createElement('div');
+  grid.className = 'my-ads-grid';
 
   data.forEach(item => {
     const images = (item.listing_images || []).slice().sort((a,b) => a.display_order - b.display_order);
@@ -121,24 +124,28 @@ async function loadMyAds() {
     const imgUrl = firstImg ? supabase.storage.from('listing-images').getPublicUrl(firstImg.storage_path).data.publicUrl : null;
     const isForum = item.category === 'forum';
 
-    const row = document.createElement('div');
-    row.className = 'my-ad-row';
-    row.innerHTML = `
-      ${imgUrl ? `<img src="${imgUrl}" alt="">` : `<div style="width:60px;height:60px;border-radius:8px;background:var(--cream-dark);display:flex;align-items:center;justify-content:center;font-size:1.6rem;">${CAT_ICON[item.category] || '📋'}</div>`}
-      <div class="info">
-        <div style="font-weight:700;">${item.title}</div>
+    const card = document.createElement('div');
+    card.className = 'my-ad-card';
+    card.innerHTML = `
+      ${imgUrl ? `<img class="my-ad-img" src="${imgUrl}" alt="${item.title}">` : `<div class="my-ad-img-placeholder">${CAT_ICON[item.category] || '📋'}</div>`}
+      <div class="my-ad-body">
+        <h3>${item.title}</h3>
         <div class="listing-meta"><span class="tag">${CAT_HE[item.category] || item.category}</span><span class="tag">${item.status === 'active' ? 'פעיל' : item.status}</span></div>
       </div>
-      <div class="actions">
-        <a href="${isForum ? 'forum-page.html?id=' : 'listing.html?id='}${item.id}" class="btn btn-outline btn-sm">צפייה</a>
-        ${!isForum ? `<a href="form.html?cat=${item.category}&edit=${item.id}" class="btn btn-outline btn-sm">עריכה</a>` : ''}
-        <button class="btn btn-danger btn-sm" onclick="deleteAd('${item.id}')">מחיקה</button>
+      <div class="my-ad-actions">
+        <a href="${isForum ? 'forum-page.html?id=' : 'listing.html?id='}${item.id}" class="btn btn-outline">צפייה</a>
+        ${!isForum ? `<a href="form.html?cat=${item.category}&edit=${item.id}" class="btn btn-outline">עריכה</a>` : ''}
+        <button class="btn btn-danger" onclick="deleteAd('${item.id}')">מחיקה</button>
       </div>
     `;
-    list.appendChild(row);
+    grid.appendChild(card);
   });
 
-  area.appendChild(list);
+  area.appendChild(grid);
+}
+
+async function doSignOut() {
+  await signOut();
 }
 
 async function deleteAd(id) {
