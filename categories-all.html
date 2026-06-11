@@ -20,7 +20,8 @@
 <header class="site-header">
   <div class="nav-wrap">
     <a href="index.html" class="logo">
-      📜 אתר הסת"ם המרכזי
+      <span class="logo-icon">🏛️</span>
+      <span class="logo-text">אתר הסת"ם המרכזי</span>
     </a>
     <nav class="main-nav" aria-label="ניווט ראשי">
       <a href="index.html">דף הבית</a>
@@ -59,34 +60,12 @@
   </div>
 </main>
 
-<footer class="site-footer">
-  <p>אתר הסת"ם המרכזי &copy; <span id="year"></span></p>
-  <p><a href="forum-page.html">פורום</a> | <a href="contact.html">צור קשר</a></p>
-  <div class="legal-links">
-    <button type="button" onclick="openLegalModal('privacy')">מדיניות פרטיות</button>
-    |
-    <button type="button" onclick="openLegalModal('terms')">תנאי שימוש</button>
-    |
-    <button type="button" onclick="openLegalModal('accessibility')">הצהרת נגישות</button>
-  </div>
-</footer>
-
-<div class="modal-overlay" id="legalModal">
-  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
-    <button class="modal-close" onclick="closeLegalModal()" aria-label="סגור">✕</button>
-    <h2 id="legalModalTitle"></h2>
-    <div id="legalModalBody"></div>
-  </div>
-</div>
-
 <!-- סרגל מעבר בין כל הקטגוריות -->
 <nav class="cat-tabbar" aria-label="מעבר בין קטגוריות">
   <div class="cat-tabbar-inner" id="catTabbar" role="tablist"></div>
 </nav>
 
 <script>
-document.getElementById('year').textContent = new Date().getFullYear();
-
 const params = new URLSearchParams(location.search);
 const cat = params.get('cat');
 let searchText = '';
@@ -238,20 +217,6 @@ async function loadListings() {
   area.innerHTML = '';
   area.appendChild(grid);
 }
-
-function openLegalModal(key) {
-  const content = LEGAL_CONTENT[key];
-  if (!content) return;
-  document.getElementById('legalModalTitle').textContent = content.title;
-  document.getElementById('legalModalBody').innerHTML = content.body;
-  document.getElementById('legalModal').classList.add('open');
-}
-function closeLegalModal() {
-  document.getElementById('legalModal').classList.remove('open');
-}
-document.getElementById('legalModal').addEventListener('click', (e) => {
-  if (e.target.id === 'legalModal') closeLegalModal();
-});
 </script>
 </body>
 </html>
