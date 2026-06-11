@@ -32,10 +32,6 @@
 
 <main id="main">
   <section class="hero">
-    <div class="hero-side-ads">
-      <div class="hero-ad-col" id="heroAdColRight"></div>
-      <div class="hero-ad-col" id="heroAdColLeft"></div>
-    </div>
     <div class="hero-badge"><span class="dot"></span><span>הלוח המרכזי לעולם הסת"ם</span></div>
     <h1>אתר הסת"ם המרכזי</h1>
     <div class="hero-pills">
@@ -49,7 +45,10 @@
     <h2 class="page-title">קטגוריות</h2>
     <span class="cat-count-badge" id="catCountBadge"></span>
 
-    <div class="cat-grid" id="catGrid"></div>
+    <div class="cats-layout">
+      <div class="cat-grid" id="catGrid"></div>
+      <div class="ad-sidebar" id="adSidebar"></div>
+    </div>
   </div>
 </main>
 
@@ -95,19 +94,18 @@ ALL_CATS.forEach(cat => {
   catGrid.appendChild(card);
 });
 
-// קוביות פרסום פנויות — שתיים בכל צד של ה-hero
-const heroAdColRight = document.getElementById('heroAdColRight');
-const heroAdColLeft = document.getElementById('heroAdColLeft');
+// קוביות פרסום פנויות — עמודה אנכית בצד התפריט
+const adSidebar = document.getElementById('adSidebar');
 for (let i = 0; i < 4; i++) {
   const a = document.createElement('a');
-  a.className = 'hero-ad-tile';
+  a.className = 'side-ad-tile';
   a.href = 'contact.html';
   a.innerHTML = `
     <span class="ad-icon">📢</span>
     <span class="ad-title">פרסם כאן</span>
     <span class="ad-price">150 ₪ לחודש</span>
   `;
-  (i < 2 ? heroAdColRight : heroAdColLeft).appendChild(a);
+  adSidebar.appendChild(a);
 }
 
 // מודאל משפטי

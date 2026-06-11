@@ -313,64 +313,69 @@ nav.main-nav .btn-account:hover {
 }
 
 /* ------------------------------------------------------------
-   קוביות פרסום בתוך ה-hero
+   Category cards grid + sidebar פרסום
    ------------------------------------------------------------ */
-.hero-side-ads {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 16px;
-}
-.hero-ad-col {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.hero-ad-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  width: 96px;
-  padding: 8px 6px;
-  border-radius: 10px;
-  background: rgba(255,255,255,.07);
-  border: 1.5px dashed rgba(255,255,255,.3);
-  color: rgba(255,255,255,.9);
-  text-align: center;
-  font-size: .68rem;
-  transition: all .15s;
-}
-.hero-ad-tile:hover {
-  background: rgba(255,255,255,.15);
-  border-color: var(--gold-light);
-}
-.hero-ad-tile .ad-icon { font-size: 1.1rem; }
-.hero-ad-tile .ad-title { font-weight: 800; }
-.hero-ad-tile .ad-price { font-weight: 700; color: var(--gold-light); font-size: .65rem; }
-
-@media (min-width: 860px) {
-  .hero-side-ads {
-    position: absolute;
-    top: 50%;
-    left: 20px;
-    right: 20px;
-    transform: translateY(-50%);
-    margin-top: 0;
-    pointer-events: none;
-  }
-  .hero-ad-col { pointer-events: auto; }
+.cats-layout {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 16px;
+  margin-top: 12px;
+  align-items: start;
 }
 
-/* ------------------------------------------------------------
-   Category cards grid
-   ------------------------------------------------------------ */
 .cat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
-  margin-top: 12px;
+}
+
+.ad-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+}
+
+.side-ad-tile {
+  background: var(--cream);
+  border: 2px dashed var(--gold);
+  border-radius: var(--radius);
+  padding: 18px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 110px;
+  transition: transform .15s, box-shadow .15s;
+}
+.side-ad-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+  border-style: solid;
+}
+.side-ad-tile .ad-icon { font-size: 1.6rem; }
+.side-ad-tile .ad-title { font-weight: 700; color: var(--black); font-size: .95rem; }
+.side-ad-tile .ad-price { font-weight: 700; color: var(--gold-dark); font-size: .85rem; }
+
+@media (max-width: 860px) {
+  .cats-layout {
+    grid-template-columns: 1fr;
+  }
+  .ad-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    padding-right: 0;
+    padding-top: 16px;
+  }
+  .side-ad-tile {
+    flex: 1 1 calc(50% - 6px);
+    min-height: 90px;
+  }
 }
 
 .cat-card {
