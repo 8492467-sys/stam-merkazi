@@ -14,30 +14,43 @@
 <body>
 <a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
 
+<div class="top-bar">
+  ✡️ ברוכים הבאים לאתר הסת"ם המרכזי <span class="sep">•</span> פרסום מודעה בחינם <span class="sep">•</span> לוח אחד לכל עולם הסת"ם
+</div>
+
 <header class="site-header">
   <div class="nav-wrap">
     <a href="index.html" class="logo">
-      ✡️ אתר הסת"ם המרכזי
-      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+      📜 אתר הסת"ם המרכזי
     </a>
     <nav class="main-nav" aria-label="ניווט ראשי">
       <a href="forum-page.html" class="btn-forum">💬 פורום</a>
-      <a href="contact.html">צור קשר</a>
     </nav>
   </div>
 </header>
 
 <main id="main">
   <section class="hero">
+    <div class="hero-badge"><span class="dot"></span><span>הלוח המרכזי לעולם הסת"ם</span></div>
     <h1>אתר הסת"ם המרכזי</h1>
-    <p>לוח מודעות אחד לכל עולם הסת"ם — תפילין, מזוזות, ספרי תורה, מגילות, הגהות, יודאיקה, קורסים ועוד. פרסום מודעה ופורום דורשים התחברות עם Google, הצפייה פתוחה לכולם.</p>
+    <div class="hero-pills">
+      <span class="hero-pill"><span class="ico">🆓</span> פרסום חינם</span>
+      <span class="hero-pill"><span class="ico">📍</span> הכל במקום אחד</span>
+      <span class="hero-pill"><span class="ico">💬</span> פורום קהילתי</span>
+    </div>
   </section>
 
   <div class="container">
     <h2 class="page-title">קטגוריות</h2>
+    <span class="cat-count-badge" id="catCountBadge"></span>
     <p class="page-subtitle">בחרו קטגוריה לצפייה במודעות ולסינון לפי הפרטים שמעניינים אתכם</p>
 
     <div class="cat-grid" id="catGrid"></div>
+
+    <h2 class="page-title" style="margin-top:40px;">מקומות פרסום פנויים</h2>
+    <p class="page-subtitle">רוצים לפרסם את העסק שלכם כאן? צרו איתנו קשר</p>
+
+    <div class="ad-grid" id="adGrid"></div>
   </div>
 </main>
 
@@ -65,6 +78,8 @@
 <script>
 document.getElementById('year').textContent = new Date().getFullYear();
 
+document.getElementById('catCountBadge').textContent = ALL_CATS.length + ' תחומים';
+
 // בניית כרטיסי קטגוריה
 const catGrid = document.getElementById('catGrid');
 ALL_CATS.forEach(cat => {
@@ -72,6 +87,7 @@ ALL_CATS.forEach(cat => {
   const card = document.createElement('a');
   card.className = 'cat-card';
   card.href = 'categories-all.html?cat=' + cat;
+  card.style.borderTop = `4px solid ${colors.color}`;
   card.innerHTML = `
     <div class="cat-icon" style="background:${colors.bg};color:${colors.color};box-shadow:0 0 0 6px ${colors.shadow};">${CAT_ICON[cat]}</div>
     <h3>${CAT_HE[cat]}</h3>
@@ -80,6 +96,20 @@ ALL_CATS.forEach(cat => {
   `;
   catGrid.appendChild(card);
 });
+
+// קוביות פרסום פנויות
+const adGrid = document.getElementById('adGrid');
+for (let i = 0; i < 5; i++) {
+  const a = document.createElement('a');
+  a.className = 'ad-tile';
+  a.href = 'contact.html';
+  a.innerHTML = `
+    <span class="ad-icon">📢</span>
+    <span class="ad-title">פרסם כאן</span>
+    <span class="ad-price">150 ₪ בלבד לחודש שלם!</span>
+  `;
+  adGrid.appendChild(a);
+}
 
 // ספירת מודעות פעילות לכל קטגוריה
 async function loadCounts() {

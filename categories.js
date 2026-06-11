@@ -7,7 +7,7 @@
 const ALL_CATS = [
   'mezuzot','tefillin','sifrei-torah','megillot','taggers','hagahot',
   'pitum-ketoret','judaica-art','shkafim','klaf-stores','kulmusim',
-  'sofer-rooms','drushim','cases','courses'
+  'sofer-rooms','drushim','cases','courses','stam-deliveries','sofer-supplies'
 ];
 
 const CAT_HE = {
@@ -26,6 +26,8 @@ const CAT_HE = {
   'drushim':       'דרושים',
   'cases':         'תיקים ונרתיקים',
   'courses':       'קורסים',
+  'stam-deliveries': 'שליחויות לסת"ם',
+  'sofer-supplies': 'חומרי עזר לסופרים',
   'forum':         'פורום'
 };
 
@@ -45,6 +47,8 @@ const CAT_DESC = {
   'drushim':       'דרושים — מוצרים ועבודה בתחום',
   'cases':         'תיקים ונרתיקים לתפילין, מזוזות וספרי תורה',
   'courses':       'קורסי סופרות, הגהה ותיוג',
+  'stam-deliveries': 'שליחויות ומשלוחים לעולם הסת"ם',
+  'sofer-supplies': 'חומרי עזר וציוד עבור סופרי סת"ם',
   'forum':         'שאלות ותשובות בעולם הסת"ם'
 };
 
@@ -64,6 +68,8 @@ const CAT_ICON = {
   'drushim':       '📢',
   'cases':         '👜',
   'courses':       '🎓',
+  'stam-deliveries': '🚚',
+  'sofer-supplies': '🧰',
   'forum':         '💬'
 };
 
@@ -84,27 +90,41 @@ const CAT_COLOR = {
   'drushim':       { color:'#b3382c', bg:'#fbe6e3', shadow:'rgba(179,56,44,.18)' },
   'cases':         { color:'#4a3f8f', bg:'#e9e7f7', shadow:'rgba(74,63,143,.18)' },
   'courses':       { color:'#1d7a8c', bg:'#e1f3f6', shadow:'rgba(29,122,140,.18)' },
+  'stam-deliveries': { color:'#c1561e', bg:'#fbe9dd', shadow:'rgba(193,86,30,.18)' },
+  'sofer-supplies': { color:'#446b3c', bg:'#e6f0e3', shadow:'rgba(68,107,60,.18)' },
   'forum':         { color:'#a8841c', bg:'#faf1d8', shadow:'rgba(168,132,28,.18)' }
 };
 
 // ------------------------------------------------------------
 // שדות ייעודיים לקטגוריה — משמשים גם לטופס הפרסום וגם לסינון
-// type: 'select' (גם לסינון וגם לטופס) | 'text' (טופס בלבד)
+// type: 'select' (גם לסינון וגם לטופס, אפשר allowOther:true להוספת אפשרות "אחר" עם שדה חופשי)
+//       'text' (טופס בלבד) | 'number' (טופס בלבד) | 'checkbox' (טופס בלבד, ערך יחיד true/false)
+//       'checkboxes' (טופס בלבד, קבוצת תיבות סימון - נשמר כמערך ערכים)
+// required:true מחייב מילוי בטופס
 // ------------------------------------------------------------
 const CATEGORY_FIELDS = {
   'mezuzot': [
-    { key:'ktav',  label:'סוג כתב',     type:'select', options:['אשכנזי','ספרדי','עדות מזרח (בלאדי)','אר"י','בית יוסף','אחר'] },
-    { key:'size',  label:'גודל',        type:'select', options:['10 ס"מ','12 ס"מ','15 ס"מ','20 ס"מ','מידות שונות'] },
-    { key:'klaf',  label:'סוג קלף',     type:'select', options:['קלף עגל','קלף גוויל','קלף רגיל'] },
-    { key:'hidur', label:'רמת הידור',   type:'select', options:['רגיל','מהודר','מהודר מאוד','בד"ץ / בדיקה מיוחדת'] },
-    { key:'price', label:'מחיר',        type:'text', placeholder:'לדוגמה: 350 ₪' }
+    { key:'size',  label:'גודל מזוזה (ס"מ)', type:'select', options:['5','7','10','12','15','20','25','30'], allowOther:true, otherType:'number' },
+    { key:'ktav',  label:'סוג כתב',          type:'select', options:['ספרדי','אר"י','בית יוסף','תימני','וועליש','מור וקציעה','אשכנזי','אחר'] },
+    { key:'klaf',  label:'סוג קלף',          type:'select', options:['רגיל','חסון','מהודר','רויאל','גוויל'] },
+    { key:'features', label:'סימונים נוספים', type:'checkboxes', options:['כתוב וקלף בלבד','מכון קומפלט עם תעודת בדיקה בתוקף','תיוג','תיוג מלא','הגהת גברא','הגהת מחשב','אפשרות לתיוג/הגהה בתוספת תשלום','כשר'] },
+    { key:'kulmus', label:'סוג קולמוס', type:'select', options:['קנה','נירוסטה','נוצה'] },
+    { key:'quantity', label:'כמות מזוזות', type:'number', required:true },
+    { key:'kosher_phone', label:'הטלפון כשר (לא סמארטפון)', type:'checkbox' },
+    { key:'contact_name', label:'שם איש קשר', type:'text' },
+    { key:'city', label:'עיר', type:'text' },
+    { key:'price', label:'מחיר', type:'text', placeholder:'לדוגמה: 350 ₪' }
   ],
   'tefillin': [
-    { key:'sug',       label:'סוג',          type:'select', options:['רש"י','ר"ת','רש"י ור"ת (פשוטים)','שניהם (זוג מהודר)'] },
-    { key:'hidur',     label:'רמת הידור',    type:'select', options:['פשוטים','מהודרים','מהודרים מאוד','בית יוסף'] },
-    { key:'batim',     label:'סוג בתים',     type:'select', options:['גוהצין','פשוטין','דוקין סבע','גסות'] },
-    { key:'condition', label:'מצב',          type:'select', options:['חדש','יד שנייה'] },
-    { key:'price',     label:'מחיר',         type:'text', placeholder:'לדוגמה: 1200 ₪' }
+    { key:'sug',   label:'סוג', type:'select', options:['רש"י','ר"ת'] },
+    { key:'ktav',  label:'סוג כתב', type:'select', options:['ספרדי','אר"י','בית יוסף','תימני','וועליש','מור וקציעה','אשכנזי','אחר'] },
+    { key:'size',  label:'גודל בתים (מ"מ)', type:'number' },
+    { key:'features', label:'סימונים נוספים', type:'checkboxes', options:['כתוב וקלף בלבד','מכון קומפלט עם תעודת בדיקה בתוקף','תיוג','תיוג מלא','הגהת גברא','הגהת מחשב','אפשרות לתיוג/הגהה בתוספת תשלום','כשר','פצפונים'] },
+    { key:'kulmus', label:'סוג קולמוס', type:'select', options:['קנה','נירוסטה','נוצה'] },
+    { key:'kosher_phone', label:'הטלפון כשר (לא סמארטפון)', type:'checkbox' },
+    { key:'contact_name', label:'שם איש קשר', type:'text' },
+    { key:'city', label:'עיר', type:'text' },
+    { key:'price', label:'מחיר', type:'text', placeholder:'לדוגמה: 1200 ₪' }
   ],
   'sifrei-torah': [
     { key:'ktav',      label:'סוג כתב',       type:'select', options:['בית יוסף','וועליש','אר"י (חב"ד)','ספרדי','תימני','אחר'] },
@@ -178,6 +198,15 @@ const CATEGORY_FIELDS = {
     { key:'audience',    label:'קהל יעד',   type:'select', options:['גברים','נשים','הכל'] },
     { key:'duration',    label:'משך הקורס', type:'text', placeholder:'לדוגמה: 3 חודשים' },
     { key:'location',    label:'מיקום',     type:'text' }
+  ],
+  'stam-deliveries': [
+    { key:'service_type', label:'סוג שירות', type:'select', options:['איסוף ומסירה','שליחות בין עיר לעיר','משלוח לחו"ל','הובלת ספרי תורה','אחר'] },
+    { key:'area',         label:'אזור פעילות', type:'text', placeholder:'לדוגמה: ירושלים והשפלה' },
+    { key:'price',        label:'מחיר', type:'text' }
+  ],
+  'sofer-supplies': [
+    { key:'item_type', label:'סוג מוצר', type:'select', options:['דיו','קולמוסים וכלי כתיבה','שורות וסרגלים','עפרונות סופר','שולחן כתיבה','כיסא סופר','מגנטים לתיוג','אחר'] },
+    { key:'price',     label:'מחיר', type:'text' }
   ]
 };
 

@@ -14,11 +14,14 @@
 <body>
 <a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
 
+<div class="top-bar">
+  ✡️ ברוכים הבאים לאתר הסת"ם המרכזי <span class="sep">•</span> פרסום מודעה בחינם <span class="sep">•</span> לוח אחד לכל עולם הסת"ם
+</div>
+
 <header class="site-header">
   <div class="nav-wrap">
     <a href="index.html" class="logo">
-      ✡️ אתר הסת"ם המרכזי
-      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+      📜 אתר הסת"ם המרכזי
     </a>
     <nav class="main-nav" aria-label="ניווט ראשי">
       <a href="my-ads.html">האזור האישי שלי</a>
@@ -55,13 +58,6 @@
 
       <div class="form-group">
         <div class="checkbox-row">
-          <input type="checkbox" id="whatsapp">
-          <label for="whatsapp" style="margin:0;">הוסף כפתור וואטסאפ</label>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <div class="checkbox-row">
           <input type="checkbox" id="hasWebsite" onchange="document.getElementById('websiteWrap').style.display = this.checked ? 'block' : 'none'">
           <label for="hasWebsite" style="margin:0;">יש לי אתר / קישור</label>
         </div>
@@ -71,14 +67,14 @@
       </div>
 
       <div class="form-group">
-        <label>תמונות (עד 3)</label>
+        <label>תמונות וקבצים (עד 5 תמונות, עד 3 קבצי PDF)</label>
         <div class="hint" style="margin-bottom:8px;">📸 העלאת תמונות משדרגת את המודעה ומושכת קהל רב יותר</div>
         <div class="image-upload-grid" id="uploadGrid">
           <div class="image-upload-slot" onclick="document.getElementById('imgInput').click()">
             <span class="placeholder">📷</span>
           </div>
         </div>
-        <input type="file" id="imgInput" accept="image/*" multiple style="display:none">
+        <input type="file" id="imgInput" accept="image/*,application/pdf" multiple style="display:none">
       </div>
 
       <button class="btn btn-submit btn-block" id="submitBtn" onclick="submitForm()">פרסם מודעה</button>
@@ -114,6 +110,9 @@ const cat = params.get('cat');
 const editId = params.get('edit');
 
 let imgCount = 0;
+let pdfCount = 0;
+const MAX_IMAGES = 5;
+const MAX_PDFS = 3;
 
 if (!cat || !ALL_CATS.includes(cat)) {
   document.querySelector('.form-card').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>קטגוריה לא נמצאה. <a href="index.html">חזרה לדף הבית</a></p></div>';
@@ -131,19 +130,60 @@ function buildCategoryFields() {
   fields.forEach(field => {
     const group = document.createElement('div');
     group.className = 'form-group';
+
+    if (field.type === 'checkbox') {
+      group.innerHTML = `
+        <div class="checkbox-row">
+          <input type="checkbox" id="field-${field.key}">
+          <label for="field-${field.key}" style="margin:0;">${field.label}${field.required ? ' *' : ''}</label>
+        </div>
+      `;
+      wrap.appendChild(group);
+      return;
+    }
+
+    if (field.type === 'checkboxes') {
+      const groupLabel = document.createElement('label');
+      groupLabel.textContent = field.label + (field.required ? ' *' : '');
+      group.appendChild(groupLabel);
+      field.options.forEach((opt, i) => {
+        const row = document.createElement('div');
+        row.className = 'checkbox-row';
+        row.innerHTML = `<input type="checkbox" id="field-${field.key}-${i}"><label for="field-${field.key}-${i}" style="margin:0;">${opt}</label>`;
+        group.appendChild(row);
+      });
+      wrap.appendChild(group);
+      return;
+    }
+
     const label = document.createElement('label');
-    label.textContent = field.label;
+    label.textContent = field.label + (field.required ? ' *' : '');
     label.setAttribute('for', 'field-' + field.key);
     group.appendChild(label);
 
     if (field.type === 'select') {
       const select = document.createElement('select');
       select.id = 'field-' + field.key;
-      select.innerHTML = '<option value="">בחר...</option>' + field.options.map(o => `<option value="${o}">${o}</option>`).join('');
+      let options = field.options.slice();
+      if (field.allowOther && !options.includes('אחר')) options.push('אחר');
+      select.innerHTML = '<option value="">בחר...</option>' + options.map(o => `<option value="${o}">${o}</option>`).join('');
       group.appendChild(select);
+
+      if (field.allowOther) {
+        const otherInput = document.createElement('input');
+        otherInput.type = field.otherType === 'number' ? 'number' : 'text';
+        otherInput.id = 'field-' + field.key + '-other';
+        otherInput.placeholder = 'הזן ערך';
+        otherInput.style.marginTop = '8px';
+        otherInput.style.display = 'none';
+        select.addEventListener('change', () => {
+          otherInput.style.display = select.value === 'אחר' ? 'block' : 'none';
+        });
+        group.appendChild(otherInput);
+      }
     } else {
       const input = document.createElement('input');
-      input.type = 'text';
+      input.type = field.type === 'number' ? 'number' : 'text';
       input.id = 'field-' + field.key;
       if (field.placeholder) input.placeholder = field.placeholder;
       group.appendChild(input);
@@ -157,21 +197,30 @@ function buildCategoryFields() {
 // ------------------------------------------------------------
 document.getElementById('imgInput').addEventListener('change', function() {
   if (!validateImageFiles(this.files)) { this.value = ''; return; }
-  Array.from(this.files).slice(0, 3 - imgCount).forEach(file => {
-    if (imgCount >= 3) return;
-    imgCount++;
+  Array.from(this.files).forEach(file => {
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (isPdf) {
+      if (pdfCount >= MAX_PDFS) return;
+      pdfCount++;
+    } else {
+      if (imgCount >= MAX_IMAGES) return;
+      imgCount++;
+    }
     selectedFiles.push(file);
-    const reader = new FileReader();
-    reader.onload = e => {
-      const slot = document.createElement('div');
-      slot.className = 'image-upload-slot';
-      slot.innerHTML = `<img src="${e.target.result}" alt="">`;
-      const grid = document.getElementById('uploadGrid');
-      const addSlot = grid.querySelector('.image-upload-slot:last-child');
+    const slot = document.createElement('div');
+    slot.className = 'image-upload-slot';
+    const grid = document.getElementById('uploadGrid');
+    const addSlot = grid.querySelector('.image-upload-slot:last-child');
+    if (isPdf) {
+      slot.innerHTML = `<span class="placeholder">📄</span>`;
       grid.insertBefore(slot, addSlot);
-      if (imgCount >= 3) addSlot.style.display = 'none';
-    };
-    reader.readAsDataURL(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = e => { slot.innerHTML = `<img src="${e.target.result}" alt="">`; };
+      reader.readAsDataURL(file);
+      grid.insertBefore(slot, addSlot);
+    }
+    if (imgCount >= MAX_IMAGES && pdfCount >= MAX_PDFS) addSlot.style.display = 'none';
   });
   this.value = '';
 });
@@ -187,7 +236,6 @@ async function loadForEdit() {
   document.getElementById('description').value = data.description || '';
   document.getElementById('descCount').textContent = (data.description || '').length + ' / 600';
   document.getElementById('phone').value = data.phone || '';
-  document.getElementById('whatsapp').checked = !!data.whatsapp_enabled;
   if (data.website) {
     document.getElementById('hasWebsite').checked = true;
     document.getElementById('websiteWrap').style.display = 'block';
@@ -196,8 +244,25 @@ async function loadForEdit() {
 
   const d = data.details || {};
   (CATEGORY_FIELDS[cat] || []).forEach(field => {
+    if (field.type === 'checkboxes') {
+      const arr = Array.isArray(d[field.key]) ? d[field.key] : [];
+      field.options.forEach((opt, i) => {
+        const cb = document.getElementById('field-' + field.key + '-' + i);
+        if (cb) cb.checked = arr.includes(opt);
+      });
+      return;
+    }
     const el = document.getElementById('field-' + field.key);
-    if (el && d[field.key] != null) el.value = d[field.key];
+    if (!el || d[field.key] == null) return;
+    if (field.type === 'checkbox') {
+      el.checked = !!d[field.key];
+    } else if (field.type === 'select' && field.allowOther && !field.options.includes(String(d[field.key]))) {
+      el.value = 'אחר';
+      const otherInput = document.getElementById('field-' + field.key + '-other');
+      if (otherInput) { otherInput.style.display = 'block'; otherInput.value = d[field.key]; }
+    } else {
+      el.value = d[field.key];
+    }
   });
 
   document.getElementById('submitBtn').textContent = 'שמור שינויים';
@@ -219,6 +284,15 @@ async function submitForm() {
     return;
   }
 
+  const requiredFields = (CATEGORY_FIELDS[cat] || []).filter(f => f.required);
+  for (const field of requiredFields) {
+    const el = document.getElementById('field-' + field.key);
+    if (!el || !String(el.value).trim()) {
+      showAlert('נא למלא את השדה: ' + field.label, 'error');
+      return;
+    }
+  }
+
   const authUser = await requireAuth('form:form.html?cat=' + cat + (editId ? '&edit=' + editId : ''));
   if (!authUser) return;
 
@@ -229,8 +303,24 @@ async function submitForm() {
   try {
     const details = {};
     (CATEGORY_FIELDS[cat] || []).forEach(field => {
+      if (field.type === 'checkboxes') {
+        const checked = field.options.filter((opt, i) => {
+          const cb = document.getElementById('field-' + field.key + '-' + i);
+          return cb && cb.checked;
+        });
+        if (checked.length) details[field.key] = checked;
+        return;
+      }
       const el = document.getElementById('field-' + field.key);
-      if (el && el.value.trim()) details[field.key] = el.value.trim();
+      if (!el) return;
+      if (field.type === 'checkbox') {
+        if (el.checked) details[field.key] = true;
+      } else if (field.type === 'select' && field.allowOther && el.value === 'אחר') {
+        const otherInput = document.getElementById('field-' + field.key + '-other');
+        if (otherInput && otherInput.value.trim()) details[field.key] = otherInput.value.trim();
+      } else if (String(el.value).trim()) {
+        details[field.key] = el.value.trim();
+      }
     });
 
     const payload = {
@@ -238,7 +328,6 @@ async function submitForm() {
       title,
       description: document.getElementById('description').value.trim(),
       phone,
-      whatsapp_enabled: document.getElementById('whatsapp').checked,
       details,
       user_id: authUser.id
     };

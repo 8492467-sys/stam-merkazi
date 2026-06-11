@@ -10,14 +10,17 @@
 <script src="categories.js"></script>
 <script src="auth.js"></script>
 </head>
-<body>
+<body class="has-tabbar">
 <a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
+
+<div class="top-bar">
+  ✡️ ברוכים הבאים לאתר הסת"ם המרכזי <span class="sep">•</span> פרסום מודעה בחינם <span class="sep">•</span> לוח אחד לכל עולם הסת"ם
+</div>
 
 <header class="site-header">
   <div class="nav-wrap">
     <a href="index.html" class="logo">
-      ✡️ אתר הסת"ם המרכזי
-      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+      📜 אתר הסת"ם המרכזי
     </a>
     <nav class="main-nav" aria-label="ניווט ראשי">
       <a href="index.html">דף הבית</a>
@@ -52,6 +55,11 @@
   </div>
 </div>
 
+<!-- סרגל מעבר בין כל הקטגוריות -->
+<nav class="cat-tabbar" aria-label="מעבר בין קטגוריות">
+  <div class="cat-tabbar-inner" id="catTabbar" role="tablist"></div>
+</nav>
+
 <script>
 document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -61,13 +69,6 @@ function formatPhone(p) {
   if (clean.startsWith('+972')) return '0' + clean.slice(4);
   if (clean.startsWith('972')) return '0' + clean.slice(3);
   return p;
-}
-
-function toWaNumber(p) {
-  const clean = (p || '').replace(/[\s\-+]/g, '');
-  if (clean.startsWith('972')) return clean;
-  if (clean.startsWith('0')) return '972' + clean.slice(1);
-  return '972' + clean;
 }
 
 let adImages = [];
@@ -122,8 +123,13 @@ async function loadListing() {
   // details list (from CATEGORY_FIELDS)
   const fields = CATEGORY_FIELDS[cat] || [];
   const detailItems = fields
-    .filter(f => f.key !== 'price' && d[f.key])
-    .map(f => `<li><span>${f.label}</span><span>${d[f.key]}</span></li>`)
+    .filter(f => f.key !== 'price' && d[f.key] && (!Array.isArray(d[f.key]) || d[f.key].length))
+    .map(f => {
+      let val = d[f.key];
+      if (f.type === 'checkbox') val = '✓';
+      else if (Array.isArray(val)) val = val.join(', ');
+      return `<li><span>${f.label}</span><span>${val}</span></li>`;
+    })
     .join('');
 
   const priceHtml = d.price ? `<div class="price">${d.price}</div>` : '';
@@ -132,9 +138,6 @@ async function loadListing() {
   let contactHtml = '';
   if (data.phone) {
     contactHtml += `<a href="tel:${data.phone}" class="btn btn-dark btn-block">📞 ${formatPhone(data.phone)}</a>`;
-  }
-  if (data.whatsapp_enabled && data.phone) {
-    contactHtml += `<a href="https://wa.me/${toWaNumber(data.phone)}" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp btn-block">💬 וואטסאפ</a>`;
   }
   if (data.website) {
     const url = data.website.startsWith('http') ? data.website : 'https://' + data.website;
@@ -158,9 +161,28 @@ async function loadListing() {
   `;
 
   if (adImages.length) setMainImg(0);
+  buildCatTabbar(cat);
 }
 
 loadListing();
+
+// סרגל מעבר בין כל הקטגוריות
+function buildCatTabbar(activeCat) {
+  const bar = document.getElementById('catTabbar');
+  ALL_CATS.forEach(c => {
+    const tab = document.createElement('a');
+    tab.className = 'cat-tab' + (c === activeCat ? ' active' : '');
+    tab.href = 'categories-all.html?cat=' + c;
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', c === activeCat ? 'true' : 'false');
+    tab.innerHTML = `<span class="tab-icon">${CAT_ICON[c]}</span><span class="tab-label">${CAT_HE[c]}</span>`;
+    bar.appendChild(tab);
+  });
+  const activeTab = bar.querySelector('.cat-tab.active');
+  if (activeTab) {
+    requestAnimationFrame(() => activeTab.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' }));
+  }
+}
 
 function openLegalModal(key) {
   const content = LEGAL_CONTENT[key];

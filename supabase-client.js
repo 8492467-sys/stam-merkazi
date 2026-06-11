@@ -1,5 +1,5 @@
-const SUPABASE_URL = 'PASTE_SUPABASE_PROJECT_URL_HERE'
-const SUPABASE_ANON_KEY = 'PASTE_SUPABASE_ANON_KEY_HERE'
+const SUPABASE_URL = 'https://uimbfaggpmdozntsamad.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbWJmYWdncG1kb3pudHNhbWFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNDY2MDksImV4cCI6MjA5NjcyMjYwOX0.91C5No6__fA0XtCbUvargPDAEUZR62s5qjL9NW_YHko'
 
 // implicit — הטוקן חוזר ב-hash, עובד טוב עם אתר סטטי
 // שמירת website בנפרד — שקטה אם העמודה עדיין לא קיימת ב-DB

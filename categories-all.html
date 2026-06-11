@@ -10,14 +10,17 @@
 <script src="categories.js"></script>
 <script src="auth.js"></script>
 </head>
-<body>
+<body class="has-tabbar">
 <a href="#main" class="skip-link">דלג לתוכן העיקרי</a>
+
+<div class="top-bar">
+  ✡️ ברוכים הבאים לאתר הסת"ם המרכזי <span class="sep">•</span> פרסום מודעה בחינם <span class="sep">•</span> לוח אחד לכל עולם הסת"ם
+</div>
 
 <header class="site-header">
   <div class="nav-wrap">
     <a href="index.html" class="logo">
-      ✡️ אתר הסת"ם המרכזי
-      <span class="sub">לוח מודעות לעולם הסת"ם</span>
+      📜 אתר הסת"ם המרכזי
     </a>
     <nav class="main-nav" aria-label="ניווט ראשי">
       <a href="index.html">דף הבית</a>
@@ -28,8 +31,25 @@
 
 <main id="main">
   <div class="container">
-    <h1 class="page-title" id="catTitle">קטגוריה</h1>
-    <p class="page-subtitle" id="catDesc"></p>
+    <p class="breadcrumb">
+      <a href="index.html">דף הבית</a>
+      <span class="sep">›</span>
+      <span id="breadcrumbCat"></span>
+    </p>
+
+    <div class="cat-hero" id="catHero">
+      <div class="cat-hero-info">
+        <div class="cat-hero-icon" id="catHeroIcon"></div>
+        <div>
+          <h1 class="cat-hero-title" id="catTitle">קטגוריה</h1>
+          <p class="cat-hero-sub" id="catDesc"></p>
+        </div>
+      </div>
+      <div class="cat-hero-search">
+        <input type="search" id="searchInput" placeholder="חיפוש...">
+        <span class="icon">🔍</span>
+      </div>
+    </div>
 
     <div class="filter-bar" id="filterBar"></div>
 
@@ -59,24 +79,58 @@
   </div>
 </div>
 
+<!-- סרגל מעבר בין כל הקטגוריות -->
+<nav class="cat-tabbar" aria-label="מעבר בין קטגוריות">
+  <div class="cat-tabbar-inner" id="catTabbar" role="tablist"></div>
+</nav>
+
 <script>
 document.getElementById('year').textContent = new Date().getFullYear();
 
 const params = new URLSearchParams(location.search);
 const cat = params.get('cat');
+let searchText = '';
+const activeFilters = {};
+
+buildCatTabbar();
 
 if (!cat || !ALL_CATS.includes(cat)) {
+  document.getElementById('catHero').style.display = 'none';
   document.getElementById('catTitle').textContent = 'קטגוריה לא נמצאה';
   document.getElementById('listingsArea').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>הקטגוריה המבוקשת לא נמצאה. <a href="index.html">חזרה לדף הבית</a></p></div>';
 } else {
-  document.getElementById('catTitle').textContent = CAT_ICON[cat] + ' ' + CAT_HE[cat];
+  const colors = CAT_COLOR[cat];
+  document.getElementById('catHero').style.background = `linear-gradient(135deg, var(--black) 0%, ${colors.color} 100%)`;
+  document.getElementById('catHeroIcon').textContent = CAT_ICON[cat];
+  document.getElementById('catTitle').textContent = CAT_HE[cat];
   document.getElementById('catDesc').textContent = CAT_DESC[cat];
+  document.getElementById('breadcrumbCat').textContent = CAT_HE[cat];
   document.title = CAT_HE[cat] + ' — אתר הסת"ם המרכזי';
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    searchText = e.target.value.trim().toLowerCase();
+    loadListings();
+  });
   buildFilterBar();
   loadListings();
 }
 
-const activeFilters = {};
+// סרגל מעבר בין כל הקטגוריות
+function buildCatTabbar() {
+  const bar = document.getElementById('catTabbar');
+  ALL_CATS.forEach(c => {
+    const tab = document.createElement('a');
+    tab.className = 'cat-tab' + (c === cat ? ' active' : '');
+    tab.href = 'categories-all.html?cat=' + c;
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', c === cat ? 'true' : 'false');
+    tab.innerHTML = `<span class="tab-icon">${CAT_ICON[c]}</span><span class="tab-label">${CAT_HE[c]}</span>`;
+    bar.appendChild(tab);
+  });
+  const activeTab = bar.querySelector('.cat-tab.active');
+  if (activeTab) {
+    requestAnimationFrame(() => activeTab.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' }));
+  }
+}
 
 function buildFilterBar() {
   const bar = document.getElementById('filterBar');
@@ -129,7 +183,7 @@ async function loadListings() {
     query = query.filter('details->>' + key, 'eq', value);
   });
 
-  const { data, error } = await query;
+  let { data, error } = await query;
 
   if (error) {
     area.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>שגיאה בטעינת המודעות.</p></div>';
@@ -137,8 +191,15 @@ async function loadListings() {
     return;
   }
 
+  if (searchText) {
+    data = (data || []).filter(item =>
+      (item.title || '').toLowerCase().includes(searchText) ||
+      (item.description || '').toLowerCase().includes(searchText)
+    );
+  }
+
   if (!data || !data.length) {
-    area.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>אין עדיין מודעות בקטגוריה זו' + (Object.keys(activeFilters).length ? ' לפי הסינון שנבחר' : '') + '.</p></div>';
+    area.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>אין עדיין מודעות בקטגוריה זו' + (Object.keys(activeFilters).length || searchText ? ' לפי הסינון שנבחר' : '') + '.</p></div>';
     return;
   }
 

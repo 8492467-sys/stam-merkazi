@@ -21,7 +21,7 @@ create table if not exists listings (
   category text not null check (category in (
     'mezuzot','tefillin','sifrei-torah','megillot','taggers','hagahot',
     'pitum-ketoret','judaica-art','shkafim','klaf-stores','kulmusim',
-    'sofer-rooms','drushim','cases','courses','forum'
+    'sofer-rooms','drushim','cases','courses','stam-deliveries','sofer-supplies','forum'
   )),
   title text not null,
   description text,
