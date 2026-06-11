@@ -32,6 +32,10 @@
 
 <main id="main">
   <section class="hero">
+    <div class="hero-side-ads">
+      <div class="hero-ad-col" id="heroAdColRight"></div>
+      <div class="hero-ad-col" id="heroAdColLeft"></div>
+    </div>
     <div class="hero-badge"><span class="dot"></span><span>הלוח המרכזי לעולם הסת"ם</span></div>
     <h1>אתר הסת"ם המרכזי</h1>
     <div class="hero-pills">
@@ -46,11 +50,6 @@
     <span class="cat-count-badge" id="catCountBadge"></span>
 
     <div class="cat-grid" id="catGrid"></div>
-
-    <h2 class="page-title" style="margin-top:40px;">מקומות פרסום פנויים</h2>
-    <p class="page-subtitle">רוצים לפרסם את העסק שלכם כאן? צרו איתנו קשר</p>
-
-    <div class="ad-grid" id="adGrid"></div>
   </div>
 </main>
 
@@ -92,38 +91,24 @@ ALL_CATS.forEach(cat => {
     <div class="cat-icon" style="background:${colors.bg};color:${colors.color};box-shadow:0 0 0 6px ${colors.shadow};">${CAT_ICON[cat]}</div>
     <h3>${CAT_HE[cat]}</h3>
     <p>${CAT_DESC[cat]}</p>
-    <div class="cat-count" id="count-${cat}">טוען...</div>
   `;
   catGrid.appendChild(card);
 });
 
-// קוביות פרסום פנויות
-const adGrid = document.getElementById('adGrid');
-for (let i = 0; i < 5; i++) {
+// קוביות פרסום פנויות — שתיים בכל צד של ה-hero
+const heroAdColRight = document.getElementById('heroAdColRight');
+const heroAdColLeft = document.getElementById('heroAdColLeft');
+for (let i = 0; i < 4; i++) {
   const a = document.createElement('a');
-  a.className = 'ad-tile';
+  a.className = 'hero-ad-tile';
   a.href = 'contact.html';
   a.innerHTML = `
     <span class="ad-icon">📢</span>
     <span class="ad-title">פרסם כאן</span>
-    <span class="ad-price">150 ₪ בלבד לחודש שלם!</span>
+    <span class="ad-price">150 ₪ לחודש</span>
   `;
-  adGrid.appendChild(a);
+  (i < 2 ? heroAdColRight : heroAdColLeft).appendChild(a);
 }
-
-// ספירת מודעות פעילות לכל קטגוריה
-async function loadCounts() {
-  for (const cat of ALL_CATS) {
-    const { count, error } = await supabase
-      .from('listings')
-      .select('id', { count: 'exact', head: true })
-      .eq('category', cat)
-      .eq('status', 'active');
-    const el = document.getElementById('count-' + cat);
-    if (el) el.textContent = error ? '' : `${count || 0} מודעות`;
-  }
-}
-loadCounts();
 
 // מודאל משפטי
 function openLegalModal(key) {
