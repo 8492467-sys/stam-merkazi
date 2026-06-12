@@ -114,6 +114,8 @@ let imgCount = 0;
 let pdfCount = 0;
 const MAX_IMAGES = 5;
 const MAX_PDFS = 3;
+let existingImages = [];
+let imagesToDelete = [];
 
 if (!cat || !ALL_CATS.includes(cat)) {
   document.querySelector('.form-card').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>קטגוריה לא נמצאה. <a href="index.html">חזרה לדף הבית</a></p></div>';
@@ -230,7 +232,7 @@ document.getElementById('imgInput').addEventListener('change', function() {
 // Edit mode — load existing listing
 // ------------------------------------------------------------
 async function loadForEdit() {
-  const { data, error } = await supabase.from('listings').select('*').eq('id', editId).single();
+  const { data, error } = await supabase.from('listings').select('*, listing_images(*)').eq('id', editId).single();
   if (error || !data) return;
 
   document.getElementById('title').value = data.title || '';
@@ -266,7 +268,56 @@ async function loadForEdit() {
     }
   });
 
+  existingImages = (data.listing_images || []).slice().sort((a,b) => a.display_order - b.display_order);
+  renderExistingImages();
+
   document.getElementById('submitBtn').textContent = 'שמור שינויים';
+}
+
+// ------------------------------------------------------------
+// Existing images (edit mode)
+// ------------------------------------------------------------
+function renderExistingImages() {
+  const grid = document.getElementById('uploadGrid');
+  const addSlot = grid.querySelector('.image-upload-slot:last-child');
+
+  existingImages.forEach(img => {
+    const isPdf = img.storage_path.toLowerCase().endsWith('.pdf');
+    if (isPdf) pdfCount++; else imgCount++;
+
+    const slot = document.createElement('div');
+    slot.className = 'image-upload-slot';
+    if (isPdf) {
+      slot.innerHTML = `<span class="placeholder">📄</span>`;
+    } else {
+      const url = supabase.storage.from('listing-images').getPublicUrl(img.storage_path).data.publicUrl;
+      slot.innerHTML = `<img src="${url}" alt="">`;
+    }
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'remove-btn';
+    removeBtn.innerHTML = '✕';
+    removeBtn.onclick = (e) => { e.stopPropagation(); removeExistingImage(img.id, slot); };
+    slot.appendChild(removeBtn);
+    grid.insertBefore(slot, addSlot);
+  });
+
+  if (imgCount >= MAX_IMAGES && pdfCount >= MAX_PDFS) addSlot.style.display = 'none';
+}
+
+function removeExistingImage(imgId, slotEl) {
+  const idx = existingImages.findIndex(img => img.id === imgId);
+  if (idx === -1) return;
+  const img = existingImages[idx];
+  const isPdf = img.storage_path.toLowerCase().endsWith('.pdf');
+  if (isPdf) pdfCount--; else imgCount--;
+  imagesToDelete.push({ id: img.id, storage_path: img.storage_path });
+  existingImages.splice(idx, 1);
+  slotEl.remove();
+
+  const grid = document.getElementById('uploadGrid');
+  const addSlot = grid.querySelector('.image-upload-slot:last-child');
+  if (imgCount < MAX_IMAGES || pdfCount < MAX_PDFS) addSlot.style.display = 'flex';
 }
 
 // ------------------------------------------------------------
@@ -344,7 +395,13 @@ async function submitForm() {
     }
 
     await saveListingWebsite(listingId);
-    await uploadListingImages(listingId);
+
+    for (const img of imagesToDelete) {
+      await supabase.storage.from('listing-images').remove([img.storage_path]);
+      await supabase.from('listing_images').delete().eq('id', img.id);
+    }
+
+    await uploadListingImages(listingId, existingImages.length);
 
     window.location.href = 'my-ads.html';
   } catch (err) {

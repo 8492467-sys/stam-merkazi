@@ -17,8 +17,9 @@ function validateImageFiles(files) {
   return true;
 }
 
-async function uploadListingImages(listingId) {
+async function uploadListingImages(listingId, startOrder) {
   if (!selectedFiles.length) return;
+  startOrder = startOrder || 0;
   const filesToUpload = [...selectedFiles];
   selectedFiles = [];
   for (var i = 0; i < filesToUpload.length; i++) {
@@ -34,7 +35,7 @@ async function uploadListingImages(listingId) {
         await supabase.from('listing_images').insert({
           listing_id: listingId,
           storage_path: path,
-          display_order: i
+          display_order: startOrder + i
         });
       }
     } catch(e) {

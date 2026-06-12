@@ -25,6 +25,8 @@
     </a>
     <nav class="main-nav" aria-label="ניווט ראשי">
       <a href="index.html">דף הבית</a>
+      <button type="button" class="btn-publish-nav" onclick="openPublishModal()">+ פרסם מודעה</button>
+      <button type="button" class="btn-logout-nav" onclick="doSignOut()">התנתק</button>
       <a href="forum-page.html" class="btn-forum">💬 פורום</a>
     </nav>
   </div>
@@ -34,11 +36,6 @@
   <div class="container">
     <h1 class="page-title">האזור האישי שלי</h1>
     <p class="page-subtitle">המודעות שפרסמת באתר</p>
-
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
-      <button class="btn btn-gold" onclick="openPublishModal()">+ פרסם מודעה חדשה</button>
-      <button class="btn btn-outline" onclick="doSignOut()">התנתק</button>
-    </div>
 
     <div id="adsList">
       <div class="loading">טוען...</div>
@@ -133,7 +130,6 @@ async function loadMyAds() {
         <div class="listing-meta"><span class="tag">${CAT_HE[item.category] || item.category}</span><span class="tag">${item.status === 'active' ? 'פעיל' : item.status}</span></div>
       </div>
       <div class="my-ad-actions">
-        <a href="${isForum ? 'forum-page.html?id=' : 'listing.html?id='}${item.id}" class="btn btn-outline">צפייה</a>
         ${!isForum ? `<a href="form.html?cat=${item.category}&edit=${item.id}" class="btn btn-outline">עריכה</a>` : ''}
         <button class="btn btn-danger" onclick="deleteAd('${item.id}')">מחיקה</button>
       </div>

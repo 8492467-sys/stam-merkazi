@@ -162,6 +162,27 @@ nav.main-nav a.btn-forum:hover {
   color: var(--black);
 }
 
+nav.main-nav .btn-publish-nav {
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: var(--black);
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 3px 14px rgba(200,144,42,.35);
+}
+nav.main-nav .btn-publish-nav:hover {
+  filter: brightness(1.05);
+  color: var(--black);
+}
+
+nav.main-nav .btn-logout-nav {
+  background: var(--white);
+  color: var(--text-muted);
+}
+nav.main-nav .btn-logout-nav:hover {
+  border-color: var(--charcoal);
+  color: var(--charcoal);
+}
+
 nav.main-nav .btn-account {
   background: linear-gradient(135deg, var(--gold), var(--gold-light));
   border: none;
@@ -804,6 +825,28 @@ nav.main-nav .btn-account:hover {
   color: var(--gold);
 }
 
+.image-upload-slot .remove-btn {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.6);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .85rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+.image-upload-slot .remove-btn:hover {
+  background: var(--gold-dark);
+}
+
 /* ------------------------------------------------------------
    Listing detail page
    ------------------------------------------------------------ */
@@ -912,8 +955,8 @@ nav.main-nav .btn-account:hover {
    ------------------------------------------------------------ */
 .my-ads-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
 }
 
 .my-ad-card {
@@ -934,33 +977,33 @@ nav.main-nav .btn-account:hover {
 
 .my-ad-card .my-ad-img {
   width: 100%;
-  height: 140px;
+  height: 90px;
   object-fit: cover;
   background: var(--cream-dark);
 }
 
 .my-ad-card .my-ad-img-placeholder {
   width: 100%;
-  height: 140px;
+  height: 90px;
   background: var(--cream-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.2rem;
+  font-size: 1.8rem;
   color: var(--gold);
 }
 
 .my-ad-card .my-ad-body {
-  padding: 12px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
 }
 
 .my-ad-card h3 {
   margin: 0;
-  font-size: .95rem;
+  font-size: .85rem;
   color: var(--black);
 }
 
@@ -968,14 +1011,14 @@ nav.main-nav .btn-account:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 0 12px 12px;
+  padding: 0 8px 8px;
 }
 
 .my-ad-actions .btn {
   flex: 1;
-  padding: 6px 4px;
-  font-size: .78rem;
-  min-width: 60px;
+  padding: 5px 4px;
+  font-size: .75rem;
+  min-width: 50px;
 }
 
 /* ------------------------------------------------------------
